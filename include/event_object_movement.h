@@ -515,4 +515,7 @@ bool8 PlayerIsUnderWaterfall(struct ObjectEvent *objectEvent);
 u16 GetObjectEventFlagIdByLocalIdAndMap(u8 localId, u8 mapNum, u8 mapGroup);
 u16 GetObjectEventGraphicsIdByLocalIdAndMap(u8 localId, u8 mapNum, u8 mapGroup);
 
+u16 GetObjectEventFlagIdByLocalIdAndMap(u8 localId, u8 mapNum, u8 mapGroup);
+u16 GetObjectEventGraphicsIdByLocalIdAndMap(u8 localId, u8 mapNum, u8 mapGroup);
+
 #endif //GUARD_EVENT_OBJECT_MOVEMENT_H

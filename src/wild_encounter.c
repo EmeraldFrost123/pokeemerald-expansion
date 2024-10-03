@@ -30,6 +30,11 @@
 #include "item.h"
 #include "constants/event_objects.h"
 
+#include "battle.h"
+#include "event_object_movement.h"
+#include "item.h"
+#include "constants/event_objects.h"
+
 extern const u8 EventScript_SprayWoreOff[];
 
 #define MAX_ENCOUNTER_RATE 2880
@@ -63,6 +68,9 @@ static bool8 TryGetAbilityInfluencedWildMonIndex(const struct WildPokemon *wildM
 static bool8 IsAbilityAllowingEncounter(u8 level);
 static struct WildPokemon ReturnFixedSpeciesEncounter();
 static struct WildPokemon ReturnHeaderSpeciesEncounter(u8 encounterType);
+static bool8 GeneratedOverworldMonShinyRoll(void);
+static u16 ReturnFixedSpeciesEncounter();
+static u16 ReturnHeaderSpeciesEncounter(u8 encounterType, u16 headerId);
 static bool8 GeneratedOverworldMonShinyRoll(void);
 
 // ow-encounters: store data based on the object event graphics ids
@@ -1089,6 +1097,20 @@ u16 GetLocalWildMon(bool8 *isWaterMon)
     }
 }
 
+u16 GetLocalLandMon(void)
+{
+    u16 headerId = GetCurrentMapWildMonHeaderId();
+
+    if (headerId != HEADER_NONE)
+    {
+        const struct WildPokemonInfo *landMonsInfo = gWildMonHeaders[headerId].landMonsInfo;
+
+        if (landMonsInfo)
+            return landMonsInfo->wildPokemon[ChooseWildMonIndex_Land()].species;
+    }
+    return SPECIES_NONE;
+}
+
 
 #define NULL_POKEMON \
     (struct WildPokemon){ \
@@ -1096,55 +1118,17 @@ u16 GetLocalWildMon(bool8 *isWaterMon)
         .minLevel = 0, \
         .maxLevel = 0, \
     }
-
-
-struct WildPokemon GetLocalLandMon(void)
+    u16 GetLocalLandMon(void)
 {
     u16 headerId = GetCurrentMapWildMonHeaderId();
     enum TimeOfDay timeOfDay;
 
     if (headerId != HEADER_NONE)
     {
-        timeOfDay = GetTimeOfDayForEncounters(headerId, WILD_AREA_WATER);
-
-        const struct WildPokemonInfo *landMonsInfo = gWildMonHeaders[headerId].encounterTypes[timeOfDay].landMonsInfo;
-
-        if (landMonsInfo)
-            return landMonsInfo->wildPokemon[ChooseWildMonIndex_Land()];
-    }
-    return NULL_POKEMON;
-}
-
-struct WildPokemon GetLocalWaterMon(void)
-{
-    u32 headerId = GetCurrentMapWildMonHeaderId();
-    enum TimeOfDay timeOfDay;
-
-    if (headerId != HEADER_NONE)
-    {
-        timeOfDay = GetTimeOfDayForEncounters(headerId, WILD_AREA_WATER);
-
-        const struct WildPokemonInfo *waterMonsInfo = gWildMonHeaders[headerId].encounterTypes[timeOfDay].waterMonsInfo;
+        const struct WildPokemonInfo *waterMonsInfo = gWildMonHeaders[headerId].waterMonsInfo;
 
         if (waterMonsInfo)
-            return waterMonsInfo->wildPokemon[ChooseWildMonIndex_Water()];
-    }
-    return NULL_POKEMON;
-}
-
-struct WildPokemon GetLocalRockSmashMon(void)
-{
-    u16 headerId = GetCurrentMapWildMonHeaderId();
-    enum TimeOfDay timeOfDay;
-
-    if (headerId != HEADER_NONE)
-    {
-        timeOfDay = GetTimeOfDayForEncounters(headerId, WILD_AREA_WATER);
-
-        const struct WildPokemonInfo *rockSmashMonsInfo = gWildMonHeaders[headerId].encounterTypes[timeOfDay].rockSmashMonsInfo;
-
-        if (rockSmashMonsInfo)
-            return rockSmashMonsInfo->wildPokemon[ChooseWildMonIndex_Rock()];
+            return waterMonsInfo->wildPokemon[ChooseWildMonIndex_WaterRock()].species;
     }
     return NULL_POKEMON;
 }
@@ -1164,6 +1148,34 @@ struct WildPokemon GetLocalFishingMon(u8 rod)
             return fishingMonsInfo->wildPokemon[ChooseWildMonIndex_Fishing(rod)];
     }
     return NULL_POKEMON;
+}
+
+u16 GetLocalRockSmashMon(void)
+{
+    u16 headerId = GetCurrentMapWildMonHeaderId();
+
+    if (headerId != HEADER_NONE)
+    {
+        const struct WildPokemonInfo *rockSmashMonsInfo = gWildMonHeaders[headerId].rockSmashMonsInfo;
+
+        if (rockSmashMonsInfo)
+            return rockSmashMonsInfo->wildPokemon[ChooseWildMonIndex_WaterRock()].species;
+    }
+    return SPECIES_NONE;
+}
+
+u16 GetLocalFishingMon(u8 rod)
+{
+    u16 headerId = GetCurrentMapWildMonHeaderId();
+
+    if (headerId != HEADER_NONE)
+    {
+        const struct WildPokemonInfo *fishingMonsInfo = gWildMonHeaders[headerId].fishingMonsInfo;
+
+        if (fishingMonsInfo)
+            return fishingMonsInfo->wildPokemon[ChooseWildMonIndex_Fishing(rod)].species;
+    }
+    return SPECIES_NONE;
 }
 
 bool8 UpdateRepelCounter(void)
@@ -1481,4 +1493,109 @@ u32 ChooseHiddenMonIndex(void)
 bool32 MapHasNoEncounterData(void)
 {
     return (GetCurrentMapWildMonHeaderId() == HEADER_NONE);
+}
+
+bool8 ScrCmd_SetObjectAsWildEncounter(struct ScriptContext *ctx)
+{
+    u16 localId = VarGet(ScriptReadHalfword(ctx));
+    u8 encounterType = ScriptReadByte(ctx);
+    u16 headerId = GetCurrentMapWildMonHeaderId();
+    u16 graphicsId = GetObjectEventGraphicsIdByLocalIdAndMap(localId, gSaveBlock1Ptr->location.mapNum, gSaveBlock1Ptr->location.mapGroup);
+    u16 variableOffset = (graphicsId >= OBJ_EVENT_GFX_VAR_0) ? graphicsId - OBJ_EVENT_GFX_VAR_0 : 0;
+    u16 objectEventVariable = VAR_OBJ_GFX_ID_0 + variableOffset;
+
+    if (!(graphicsId >= OBJ_EVENT_GFX_VARS
+        && graphicsId <= OBJ_EVENT_GFX_LAST))
+    {
+        return FALSE;
+    }
+
+    encounterType = (encounterType < ENCOUNTER_TYPES) ? encounterType : ENCOUNTER_LAND;
+
+    if (headerId == HEADER_NONE || encounterType == ENCOUNTER_FIXED)
+    {
+        VarSet(objectEventVariable, ReturnFixedSpeciesEncounter());
+        return FALSE;
+    }
+
+    if (Random() < SPAWN_ODDS)
+    {
+        VarSet(objectEventVariable, ReturnHeaderSpeciesEncounter(encounterType, headerId));
+    }
+    else
+    {
+        FlagSet(GetObjectEventFlagIdByLocalIdAndMap(localId, gSaveBlock1Ptr->location.mapNum, gSaveBlock1Ptr->location.mapGroup));
+    }
+    return FALSE;
+}
+
+static u16 ReturnFixedSpeciesEncounter(void)
+{
+    u16 shinyTag = GeneratedOverworldMonShinyRoll() ? SPECIES_SHINY_TAG : 0;
+    u16 species = SPECIES_CHIMCHAR;
+    
+    return species + OBJ_EVENT_GFX_SPECIES(NONE) + shinyTag;
+}
+
+static u16 ReturnHeaderSpeciesEncounter(u8 encounterType, u16 headerId)
+{
+    u16 shinyTag = GeneratedOverworldMonShinyRoll() ? SPECIES_SHINY_TAG : 0;
+    u16 species = SPECIES_NONE;
+
+    switch (encounterType)
+    {
+    case ENCOUNTER_LAND:
+        species = GetLocalLandMon();
+        break;
+
+    case ENCOUNTER_SURF:
+        species = GetLocalWaterMon();
+        break;
+
+    case ENCOUNTER_ROCK_SMASH:
+        species = GetLocalRockSmashMon();
+        break;
+
+    case ENCOUNTER_OLD_ROD:
+        species = GetLocalFishingMon(OLD_ROD);
+        break;
+
+    case ENCOUNTER_GOOD_ROD:
+        species = GetLocalFishingMon(GOOD_ROD);
+        break;
+
+    case ENCOUNTER_SUPER_ROD:
+        species = GetLocalFishingMon(SUPER_ROD);
+        break;
+    }
+
+    if (species != SPECIES_NONE)
+        return species + OBJ_EVENT_GFX_SPECIES(NONE) + shinyTag;
+    else
+        return ReturnFixedSpeciesEncounter();
+}
+
+static bool8 GeneratedOverworldMonShinyRoll(void) // Replicated partly from CreateBoxMon in pokemon.c
+{
+    u8 shinyRolls = 1;
+
+    if (CheckBagHasItem(ITEM_SHINY_CHARM, 1))
+        shinyRolls += I_SHINY_CHARM_ADDITIONAL_ROLLS;
+    if (LURE_STEP_COUNT != 0)
+        shinyRolls += 1;
+    /*
+    if (I_FISHING_CHAIN && ENCOUNTER_TYPE >= ENCOUNTER_OLD_ROD && ENCOUNTER_TYPE <= ENCOUNTER_SUPER_ROD)
+        shinyRolls += CalculateChainFishingShinyRolls();
+    */
+    
+    while (shinyRolls > 0)
+    {
+        if (Random() < SHINY_ODDS)
+        {
+            return TRUE;
+        }
+        shinyRolls -= 1;
+    }
+    
+    return FALSE;
 }
