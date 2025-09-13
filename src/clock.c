@@ -1,6 +1,7 @@
 #include "global.h"
 #include "berry.h"
 #include "clock.h"
+#include "berry.h"
 #include "dewford_trend.h"
 #include "event_data.h"
 #include "field_specials.h"
