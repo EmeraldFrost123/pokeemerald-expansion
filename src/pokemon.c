@@ -66,6 +66,7 @@
 #include "constants/union_room.h"
 #include "constants/weather.h"
 #include "wild_encounter.h"
+#include "variant_colours.h"
 
 #define FRIENDSHIP_EVO_THRESHOLD ((P_FRIENDSHIP_EVO_THRESHOLD >= GEN_8) ? 160 : 220)
 
@@ -1691,99 +1692,7 @@ static u16 CalculateBoxMonChecksumReencrypt(struct BoxPokemon *boxMon)
     return checksum;
 }
 
-void CalculateMonStats(struct Pokemon *mon)
-{
-    s32 oldMaxHP = GetMonData(mon, MON_DATA_MAX_HP, NULL);
-    s32 currentHP = GetMonData(mon, MON_DATA_HP, NULL);
-    u16 species = GetMonData(mon, MON_DATA_SPECIES, NULL);
-    u8 friendship = GetMonData(mon, MON_DATA_FRIENDSHIP, NULL);
-    s32 level = GetLevelFromMonExp(mon);
-    s32 newMaxHP;
 
-    u8 nature = GetMonData(mon, MON_DATA_HIDDEN_NATURE, NULL);
-
-    SetMonData(mon, MON_DATA_LEVEL, &level);
-
-    bool32 hyperTrained[NUM_STATS]; //In a battle test, hyper training flag indicates a fixed stat
-    s32 iv[NUM_STATS];
-    s32 ev[NUM_STATS];
-    for (u32 i = 0; i < NUM_STATS; i++)
-    {
-        hyperTrained[i] = GetMonData(mon, MON_DATA_HYPER_TRAINED_HP + i);
-        iv[i] = GetMonData(mon, MON_DATA_HP_IV + i);
-        ev[i] = GetMonData(mon, MON_DATA_HP_EV + i);
-
-        if (hyperTrained[i])
-        {
-        #if TESTING
-            if (gMain.inBattle)
-                continue;
-        #endif
-            iv[i] = MAX_PER_STAT_IVS;
-        }
-
-        if (i == STAT_HP)
-            continue;
-
-        u8 baseStat = GetSpeciesBaseStat(species, i);
-        s32 n = (((2 * baseStat + iv[i] + ev[i] / 4) * level) / 100) + 5;
-        n = ModifyStatByNature(nature, n, i);
-        if (B_FRIENDSHIP_BOOST == TRUE)
-            n = n + ((n * 10 * friendship) / (MAX_FRIENDSHIP * 100));
-        SetMonData(mon, MON_DATA_MAX_HP + i, &n);
-    }
-
-#if TESTING
-    if (hyperTrained[STAT_HP] && gMain.inBattle)
-        return;
-#endif
-
-    if (species == SPECIES_SHEDINJA)
-    {
-        newMaxHP = 1;
-    }
-    else
-    {
-        s32 n = 2 * GetSpeciesBaseHP(species) + iv[STAT_HP];
-        newMaxHP = (((n + ev[STAT_HP] / 4) * level) / 100) + level + 10;
-    }
-
-    gBattleScripting.levelUpHP = newMaxHP - oldMaxHP;
-    if (gBattleScripting.levelUpHP == 0)
-        gBattleScripting.levelUpHP = 1;
-    SetMonData(mon, MON_DATA_MAX_HP, &newMaxHP);
-
-    // Since a pokemon's maxHP data could either not have
-    // been initialized at this point or this pokemon is
-    // just fainted, the check for oldMaxHP is important.
-    if (currentHP == 0 && oldMaxHP != 0)
-        return;
-
-    // Only add to currentHP if newMaxHP went up.
-    if (newMaxHP > oldMaxHP)
-        currentHP += newMaxHP - oldMaxHP;
-
-    // Ensure currentHP does not surpass newMaxHP.
-    if (currentHP > newMaxHP)
-        currentHP = newMaxHP;
-
-    SetMonData(mon, MON_DATA_HP, &currentHP);
-}
-
-void BoxMonToMon(const struct BoxPokemon *src, struct Pokemon *dest)
-{
-    u32 value = 0;
-    dest->box = *src;
-    dest->status = GetBoxMonData(&dest->box, MON_DATA_STATUS, NULL);
-    dest->hp = 0;
-    dest->maxHP = 0;
-    value = MAIL_NONE;
-    SetMonData(dest, MON_DATA_MAIL, &value);
-    value = GetBoxMonData(&dest->box, MON_DATA_HP_LOST);
-    CalculateMonStats(dest);
-    value = GetMonData(dest, MON_DATA_MAX_HP) - value;
-    SetMonData(dest, MON_DATA_HP, &value);
-}
 
 u8 GetLevelFromMonExp(struct Pokemon *mon)
 {
@@ -3572,26 +3481,6 @@ u32 GetSpeciesBaseSpeed(u16 species)
     return gSpeciesInfo[SanitizeSpeciesId(species)].baseSpeed;
 }
 
-u32 GetSpeciesBaseStat(u16 species, u32 statIndex)
-{
-    switch (statIndex)
-    {
-    case STAT_HP:
-        return GetSpeciesBaseHP(species);
-    case STAT_ATK:
-        return GetSpeciesBaseAttack(species);
-    case STAT_DEF:
-        return GetSpeciesBaseDefense(species);
-    case STAT_SPEED:
-        return GetSpeciesBaseSpeed(species);
-    case STAT_SPATK:
-        return GetSpeciesBaseSpAttack(species);
-    case STAT_SPDEF:
-        return GetSpeciesBaseSpDefense(species);
-    }
-    return 0;
-}
-
 const struct LevelUpMove *GetSpeciesLevelUpLearnset(u16 species)
 {
     const struct LevelUpMove *learnset = gSpeciesInfo[SanitizeSpeciesId(species)].levelUpLearnset;
@@ -3701,18 +3590,129 @@ void PokemonToBattleMon(struct Pokemon *src, struct BattlePokemon *dst, bool8 re
     StringCopy_Nickname(dst->nickname, nickname);
     GetMonData(src, MON_DATA_OT_NAME, dst->otName);
 
-    if (resetStats)
+    for (i = 0; i < NUM_BATTLE_STATS; i++)
+        dst->statStages[i] = DEFAULT_STAT_STAGE;
+
+    memset(&dst->volatiles, 0, sizeof(struct Volatiles));
+}
+u32 GetSpeciesBaseStat(u16 species, u32 statIndex)
+{
+    switch (statIndex)
     {
-        for (i = 0; i < NUM_BATTLE_STATS; i++)
-            dst->statStages[i] = DEFAULT_STAT_STAGE;
-        dst->status2 = 0;
+    case STAT_HP:
+        return GetSpeciesBaseHP(species);
+    case STAT_ATK:
+        return GetSpeciesBaseAttack(species);
+    case STAT_DEF:
+        return GetSpeciesBaseDefense(species);
+    case STAT_SPEED:
+        return GetSpeciesBaseSpeed(species);
+    case STAT_SPATK:
+        return GetSpeciesBaseSpAttack(species);
+    case STAT_SPDEF:
+        return GetSpeciesBaseSpDefense(species);
+    }
+    return 0;
+}
+void CalculateMonStats(struct Pokemon *mon)
+{
+    s32 oldMaxHP = GetMonData(mon, MON_DATA_MAX_HP, NULL);
+    s32 currentHP = GetMonData(mon, MON_DATA_HP, NULL);
+    u16 species = GetMonData(mon, MON_DATA_SPECIES, NULL);
+    u8 friendship = GetMonData(mon, MON_DATA_FRIENDSHIP, NULL);
+    s32 level = GetLevelFromMonExp(mon);
+    s32 newMaxHP;
+
+    u8 nature = GetMonData(mon, MON_DATA_HIDDEN_NATURE, NULL);
+
+    SetMonData(mon, MON_DATA_LEVEL, &level);
+
+    bool32 hyperTrained[NUM_STATS]; //In a battle test, hyper training flag indicates a fixed stat
+    s32 iv[NUM_STATS];
+    s32 ev[NUM_STATS];
+    for (u32 i = 0; i < NUM_STATS; i++)
+    {
+        hyperTrained[i] = GetMonData(mon, MON_DATA_HYPER_TRAINED_HP + i);
+        iv[i] = GetMonData(mon, MON_DATA_HP_IV + i);
+        ev[i] = GetMonData(mon, MON_DATA_HP_EV + i);
+
+        if (hyperTrained[i])
+        {
+        #if TESTING
+            if (gMain.inBattle)
+                continue;
+        #endif
+            iv[i] = MAX_PER_STAT_IVS;
+        }
+
+        if (i == STAT_HP)
+            continue;
+
+        u8 baseStat = GetSpeciesBaseStat(species, i);
+        s32 n = (((2 * baseStat + iv[i] + ev[i] / 4) * level) / 100) + 5;
+        n = ModifyStatByNature(nature, n, i);
+        if (B_FRIENDSHIP_BOOST == TRUE)
+            n = n + ((n * 10 * friendship) / (MAX_FRIENDSHIP * 100));
+        SetMonData(mon, MON_DATA_MAX_HP + i, &n);
     }
 
-void CopyPartyMonToBattleData(u32 battlerId, u32 partyIndex, bool8 resetStats)
+#if TESTING
+    if (hyperTrained[STAT_HP] && gMain.inBattle)
+        return;
+#endif
+
+    if (species == SPECIES_SHEDINJA)
+    {
+        newMaxHP = 1;
+    }
+    else
+    {
+        s32 n = 2 * GetSpeciesBaseHP(species) + iv[STAT_HP];
+        newMaxHP = (((n + ev[STAT_HP] / 4) * level) / 100) + level + 10;
+    }
+
+    gBattleScripting.levelUpHP = newMaxHP - oldMaxHP;
+    if (gBattleScripting.levelUpHP == 0)
+        gBattleScripting.levelUpHP = 1;
+    SetMonData(mon, MON_DATA_MAX_HP, &newMaxHP);
+
+    // Since a pokemon's maxHP data could either not have
+    // been initialized at this point or this pokemon is
+    // just fainted, the check for oldMaxHP is important.
+    if (currentHP == 0 && oldMaxHP != 0)
+        return;
+
+    // Only add to currentHP if newMaxHP went up.
+    if (newMaxHP > oldMaxHP)
+        currentHP += newMaxHP - oldMaxHP;
+
+    // Ensure currentHP does not surpass newMaxHP.
+    if (currentHP > newMaxHP)
+        currentHP = newMaxHP;
+
+    SetMonData(mon, MON_DATA_HP, &currentHP);
+}
+
+void BoxMonToMon(const struct BoxPokemon *src, struct Pokemon *dest)
+{
+    u32 value = 0;
+    dest->box = *src;
+    dest->status = GetBoxMonData(&dest->box, MON_DATA_STATUS, NULL);
+    dest->hp = 0;
+    dest->maxHP = 0;
+    value = MAIL_NONE;
+    SetMonData(dest, MON_DATA_MAIL, &value);
+    value = GetBoxMonData(&dest->box, MON_DATA_HP_LOST);
+    CalculateMonStats(dest);
+    value = GetMonData(dest, MON_DATA_MAX_HP) - value;
+    SetMonData(dest, MON_DATA_HP, &value);
+}
+
+void CopyPartyMonToBattleData(u32 battler, u32 partyIndex, bool8 resetStats)
 {
     u32 side = GetBattlerSide(battler);
     struct Pokemon *party = GetSideParty(side);
-    PokemonToBattleMon(&party[partyIndex], &gBattleMons[battlerId], resetStats);
+    PokemonToBattleMon(&party[partyIndex], &gBattleMons[battler], resetStats);
     gBattleStruct->hpOnSwitchout[side] = gBattleMons[battler].hp;
     UpdateSentPokesToOpponentValue(battler);
     ClearTemporarySpeciesSpriteData(battler, FALSE, FALSE);
@@ -5931,12 +5931,7 @@ const u16 *GetMonFrontSpritePal(struct Pokemon *mon)
     return GetMonSpritePalFromSpeciesAndPersonality(species, isShiny, personality);
 }
 
-const u16 *GetMonSpritePalFromSpeciesAndPersonality(u16 species, bool32 isShiny, u32 personality)
-{
-    return GetMonSpritePalFromSpecies(species, isShiny, IsPersonalityFemale(species, personality));
-}
-
-const u16 *GetMonSpritePalFromSpecies(u16 species, bool32 isShiny, bool32 isFemale)
+const u16 *GetMonSpritePalFromSpeciesInternal(u16 species, bool32 isShiny, bool32 isFemale)
 {
     species = SanitizeSpeciesId(species);
 
@@ -5965,6 +5960,25 @@ const u16 *GetMonSpritePalFromSpecies(u16 species, bool32 isShiny, bool32 isFema
             return gSpeciesInfo[SPECIES_NONE].palette;
     }
 }
+
+const u16 *GetMonSpritePalFromSpeciesAndPersonality(u16 species, bool32 isShiny, u32 personality)
+{
+    const u16 *base = GetMonSpritePalFromSpeciesInternal(species, isShiny, IsPersonalityFemale(species, personality));
+    static u16 sVariantPal[16];
+    CpuCopy16(base, sVariantPal, sizeof(sVariantPal));
+    ApplyMonSpeciesVariantToPaletteBuffer(species, isShiny, personality, sVariantPal);
+    return sVariantPal;
+}
+
+const u16 *GetMonSpritePalFromSpecies(u16 species, bool32 isShiny, bool32 isFemale)
+{
+    const u16 *base = GetMonSpritePalFromSpeciesInternal(species, isShiny, isFemale);
+    static u16 sVariantPal[16];
+    CpuCopy16(base, sVariantPal, sizeof(sVariantPal));
+    ApplyMonSpeciesVariantToPaletteBuffer(species, isShiny, 0x00000000, sVariantPal);
+    return sVariantPal;
+}
+
 
 #define OR_MOVE_IS_HM(_hm) || (move == MOVE_##_hm)
 

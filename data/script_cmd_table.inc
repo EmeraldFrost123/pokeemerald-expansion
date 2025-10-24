@@ -251,8 +251,7 @@ gScriptCmdTable::
 	.4byte ScrCmd_dynmultichoice                    @ 0xe3
 	.4byte ScrCmd_dynmultipush                      @ 0xe4
 	.4byte ScrCmd_SetObjectAsWildEncounter			@ 0xe5
-
-	.if ALLOCATE_SCRIPT_CMD_TABLE
-gScriptCmdTableEnd::
 	.4byte ScrCmd_nop
+	gScriptCmdTableEnd::
 	.endif
+	
