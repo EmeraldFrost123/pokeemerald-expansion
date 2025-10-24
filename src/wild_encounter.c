@@ -1144,7 +1144,7 @@ struct WildPokemon GetLocalRockSmashMon(void)
         const struct WildPokemonInfo *rockSmashMonsInfo = gWildMonHeaders[headerId].encounterTypes[timeOfDay].rockSmashMonsInfo;
 
         if (rockSmashMonsInfo)
-            return rockSmashMonsInfo->wildPokemon[ChooseWildMonIndex_WaterRock()];
+            return rockSmashMonsInfo->wildPokemon[ChooseWildMonIndex_Rock()];
     }
     return NULL_POKEMON;
 }
@@ -1295,9 +1295,6 @@ static u8 GetMaxLevelOfSpeciesInWildTable(const struct WildPokemon *wildMon, u16
 
 #ifdef BUGFIX
 static bool8 TryGetAbilityInfluencedWildMonIndex(const struct WildPokemon *wildMon, u8 type, u16 ability, u8 *monIndex, u32 size)
-#else
-static bool8 TryGetAbilityInfluencedWildMonIndex(const struct WildPokemon *wildMon, u8 type, u16 ability, u8 *monIndex)
-#endif
 {
     if (GetMonData(&gPlayerParty[0], MON_DATA_SANITY_IS_EGG))
         return FALSE;
@@ -1305,13 +1302,12 @@ static bool8 TryGetAbilityInfluencedWildMonIndex(const struct WildPokemon *wildM
         return FALSE;
     else if (Random() % 2 != 0)
         return FALSE;
-
+}
 #ifdef BUGFIX
     return TryGetRandomWildMonIndexByType(wildMon, type, size, monIndex);
 #else
     return TryGetRandomWildMonIndexByType(wildMon, type, LAND_WILD_COUNT, monIndex);
 #endif
-}
 
 static void ApplyFluteEncounterRateMod(u32 *encRate)
 {
@@ -1465,116 +1461,6 @@ static bool8 GeneratedOverworldMonShinyRoll(void) // Replicated partly from Crea
     return FALSE;
 }
 
-bool8 ScrCmd_SetObjectAsWildEncounter(struct ScriptContext *ctx)
-{
-    u16 localId = VarGet(ScriptReadHalfword(ctx));
-    u8 encounterType = ScriptReadByte(ctx);
-    u16 headerId = GetCurrentMapWildMonHeaderId();
-    u16 graphicsId = GetObjectEventGraphicsIdByLocalIdAndMap(localId, gSaveBlock1Ptr->location.mapNum, gSaveBlock1Ptr->location.mapGroup);
-    u16 variableOffset = (graphicsId >= OBJ_EVENT_GFX_VAR_0) ? graphicsId - OBJ_EVENT_GFX_VAR_0 : 0;
-    u16 objectEventVariable = VAR_OBJ_GFX_ID_0 + variableOffset;
-    struct WildPokemon wildMon = {0};
-    u16 shinyTag = 0;
-
-    if (!(graphicsId >= OBJ_EVENT_GFX_VARS
-        && graphicsId <= OBJ_EVENT_GFX_LAST))
-    {
-        return FALSE;
-    }
-
-    encounterType = (encounterType < ENCOUNTER_TYPES) ? encounterType : ENCOUNTER_LAND;
-
-    if (headerId == HEADER_NONE || encounterType == ENCOUNTER_FIXED)
-    {
-        wildMon = ReturnFixedSpeciesEncounter();
-    } 
-    else if (Random() < SPAWN_ODDS)
-    {
-        wildMon = ReturnHeaderSpeciesEncounter(encounterType);
-    }
-    
-    if (wildMon.species != SPECIES_NONE)
-    {
-        shinyTag = GeneratedOverworldMonShinyRoll() ? SPECIES_SHINY_TAG : 0;
-        VarSet(objectEventVariable, wildMon.species + OBJ_EVENT_GFX_SPECIES(NONE) + shinyTag);
-        activeOverworldEncounters[variableOffset] = wildMon;
-    }
-    else
-    {
-        FlagSet(GetObjectEventFlagIdByLocalIdAndMap(localId, gSaveBlock1Ptr->location.mapNum, gSaveBlock1Ptr->location.mapGroup));
-    }
-    return FALSE;
-}
-
-static struct WildPokemon ReturnFixedSpeciesEncounter(void)
-{
-    struct WildPokemon wildMon = {
-        .minLevel = 5,
-        .maxLevel = 5,
-        .species = SPECIES_CHIMCHAR
-    };
-
-    return wildMon;
-}
-
-static struct WildPokemon ReturnHeaderSpeciesEncounter(u8 encounterType)
-{
-    struct WildPokemon wildMon = {0};
-
-    switch (encounterType)
-    {
-    case ENCOUNTER_LAND:
-        wildMon = GetLocalLandMon();
-        break;
-
-    case ENCOUNTER_SURF:
-        wildMon = GetLocalWaterMon();
-        break;
-
-    case ENCOUNTER_ROCK_SMASH:
-        wildMon = GetLocalRockSmashMon();
-        break;
-
-    case ENCOUNTER_OLD_ROD:
-        wildMon = GetLocalFishingMon(OLD_ROD);
-        break;
-
-    case ENCOUNTER_GOOD_ROD:
-        wildMon = GetLocalFishingMon(GOOD_ROD);
-        break;
-
-    case ENCOUNTER_SUPER_ROD:
-        wildMon = GetLocalFishingMon(SUPER_ROD);
-        break;
-    }
-
-    return wildMon;
-}
-
-static bool8 GeneratedOverworldMonShinyRoll(void) // Replicated partly from CreateBoxMon in pokemon.c
-{
-    u8 shinyRolls = 1;
-
-    if (CheckBagHasItem(ITEM_SHINY_CHARM, 1))
-        shinyRolls += I_SHINY_CHARM_ADDITIONAL_ROLLS;
-    if (LURE_STEP_COUNT != 0)
-        shinyRolls += 1;
-    /*
-    if (I_FISHING_CHAIN && ENCOUNTER_TYPE >= ENCOUNTER_OLD_ROD && ENCOUNTER_TYPE <= ENCOUNTER_SUPER_ROD)
-        shinyRolls += CalculateChainFishingShinyRolls();
-    */
-    
-    while (shinyRolls > 0)
-    {
-        if (Random() < SHINY_ODDS)
-        {
-            return TRUE;
-        }
-        shinyRolls -= 1;
-    }
-    
-    return FALSE;
-}
 
 u32 ChooseHiddenMonIndex(void)
 {

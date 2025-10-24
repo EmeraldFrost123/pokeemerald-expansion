@@ -4184,32 +4184,6 @@ enum
     STATE_SELECTION_SCRIPT_MAY_RUN
 };
 
-void SetupAISwitchingData(u32 battler, enum SwitchType switchType)
-{
-    s32 opposingBattler = GetOppositeBattler(battler);
-
-    // AI's predicting data
-    if ((AI_THINKING_STRUCT->aiFlags[battler] & AI_FLAG_PREDICT_SWITCH))
-    {
-        AI_DATA->aiSwitchPredictionInProgress = TRUE;
-        AI_DATA->battlerDoingPrediction = battler;
-        AI_DATA->mostSuitableMonId[opposingBattler] = GetMostSuitableMonToSwitchInto(opposingBattler, switchType);
-        if (ShouldSwitch(opposingBattler))
-            AI_DATA->shouldSwitch |= (1u << opposingBattler);
-        AI_DATA->aiSwitchPredictionInProgress = FALSE;
-        gBattleStruct->prevTurnSpecies[opposingBattler] = gBattleMons[opposingBattler].species;
-
-        // Determine whether AI will use predictions this turn
-        AI_DATA->predictingSwitch = RandomPercentage(RNG_AI_PREDICT_SWITCH, PREDICT_SWITCH_CHANCE);
-    }
-
-    // AI's data
-    AI_DATA->mostSuitableMonId[battler] = GetMostSuitableMonToSwitchInto(battler, switchType);
-    if (ShouldSwitch(battler))
-        AI_DATA->shouldSwitch |= (1u << battler);
-    gBattleStruct->prevTurnSpecies[battler] = gBattleMons[battler].species;
-}
-
 #define LEFT_PKMN gBattlerPartyIndexes[GetBattlerAtPosition(B_POSITION_PLAYER_LEFT)]
 #define RIGHT_PKMN gBattlerPartyIndexes[GetBattlerAtPosition(B_POSITION_PLAYER_RIGHT)]
 
@@ -4245,8 +4219,9 @@ static void PlayerTryEvolution(void)
     u8 taskId; 
     if (gLeveledUpInBattle & (1u << LEFT_PKMN) && !gPlayerDoesNotWantToEvolveLeft)
     {
+        bool32 canStopEvo = TRUE;
         gLeveledUpInBattle &= ~((1u << LEFT_PKMN)); // Mask the bit
-        species = GetEvolutionTargetSpecies(&gPlayerParty[LEFT_PKMN], EVO_MODE_NORMAL, ITEM_NONE, NULL);
+        species = GetEvolutionTargetSpecies(&gPlayerParty[LEFT_PKMN], EVO_MODE_NORMAL, ITEM_NONE, NULL, &canStopEvo, DO_EVO);
         if (species != SPECIES_NONE)
         {
             BeginNormalPaletteFade(PALETTES_ALL, 0, 0, 0x10, RGB_BLACK);
@@ -4259,8 +4234,9 @@ static void PlayerTryEvolution(void)
     }
     if (gBattleTypeFlags & BATTLE_TYPE_DOUBLE && gLeveledUpInBattle & (1u << RIGHT_PKMN) && !gPlayerDoesNotWantToEvolveRight)
     {
+        bool32 canStopEvo = TRUE;
         gLeveledUpInBattle &= ~((1u << RIGHT_PKMN)); // Mask the bit
-        species = GetEvolutionTargetSpecies(&gPlayerParty[RIGHT_PKMN], EVO_MODE_NORMAL, ITEM_NONE, NULL);
+        species = GetEvolutionTargetSpecies(&gPlayerParty[RIGHT_PKMN], EVO_MODE_NORMAL, ITEM_NONE, NULL, &canStopEvo, DO_EVO);
         if (species != SPECIES_NONE)
         {
             BeginNormalPaletteFade(PALETTES_ALL, 0, 0, 0x10, RGB_BLACK);
