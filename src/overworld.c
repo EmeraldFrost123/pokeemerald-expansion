@@ -24,6 +24,7 @@
 #include "field_weather.h"
 #include "fieldmap.h"
 #include "fldeff.h"
+#include "siirtc.h"
 #include "follower_npc.h"
 #include "gpu_regs.h"
 #include "heal_location.h"
@@ -77,6 +78,7 @@
 #include "constants/trainer_hill.h"
 #include "constants/weather.h"
 #include "constants/event_objects.h"
+
 
 STATIC_ASSERT((B_FLAG_FOLLOWERS_DISABLED == 0 || OW_FOLLOWERS_ENABLED), FollowersFlagAssignedWithoutEnablingThem);
 
@@ -1695,6 +1697,7 @@ u8 UpdateSpritePaletteWithTime(u8 paletteNum)
 
 static void OverworldBasic(void)
 {
+    u8 season = getCurrentSeason();
     ScriptContext_RunScript();
     RunTasks();
     AnimateSprites();
@@ -1704,6 +1707,23 @@ static void OverworldBasic(void)
     UpdatePaletteFade();
     UpdateTilesetAnimations();
     DoScheduledBgTilemapCopiesToVram();
+            
+ if (OFFSET_MONTH >= 1) {
+      switch(season){
+                case SEASON_SPRING:
+                    VarSet(VAR_CURRENT_SEASON, SEASON_SUMMER);
+                break;
+                case SEASON_SUMMER:
+                    VarSet(VAR_CURRENT_SEASON, SEASON_AUTUMN);
+                break;
+                case SEASON_AUTUMN:
+                    VarSet(VAR_CURRENT_SEASON, SEASON_WINTER);
+                break;
+                  case SEASON_WINTER:
+                   VarSet(VAR_CURRENT_SEASON, SEASON_SPRING);
+                break;
+ }  
+}
     // Every minute if no palette fade is active, update TOD blending as needed
     if (!gPaletteFade.active && --gTimeUpdateCounter <= 0)
     {
@@ -1725,7 +1745,9 @@ static void OverworldBasic(void)
 // This CB2 is used when starting
 void CB2_OverworldBasic(void)
 {
+
     OverworldBasic();
+
 }
 
 void CB2_Overworld(void)
@@ -1795,6 +1817,7 @@ void CB2_NewGame(void)
     SetFieldVBlankCallback();
     SetMainCallback1(CB1_Overworld);
     SetMainCallback2(CB2_Overworld);
+    VarSet(VAR_CURRENT_SEASON, SEASON_AUTUMN);
 #if OW_USE_FAKE_RTC
     // Wall clock now track local time so we set it to 10AM to match initial wall clock time
     RtcCalcLocalTimeOffset(0, 10, 0, 0);

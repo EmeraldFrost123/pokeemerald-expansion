@@ -30,4 +30,15 @@ bool8 SiiRtcGetTime(struct SiiRtcInfo *rtc);
 bool8 SiiRtcSetTime(struct SiiRtcInfo *rtc);
 bool8 SiiRtcSetAlarm(struct SiiRtcInfo *rtc);
 
+#define OFFSET_YEAR         offsetof(struct SiiRtcInfo, year)
+#define OFFSET_MONTH        offsetof(struct SiiRtcInfo, month)
+#define OFFSET_DAY          offsetof(struct SiiRtcInfo, day)
+#define OFFSET_DAY_OF_WEEK  offsetof(struct SiiRtcInfo, dayOfWeek)
+#define OFFSET_HOUR         offsetof(struct SiiRtcInfo, hour)
+#define OFFSET_MINUTE       offsetof(struct SiiRtcInfo, minute)
+#define OFFSET_SECOND       offsetof(struct SiiRtcInfo, second)
+#define OFFSET_STATUS       offsetof(struct SiiRtcInfo, status)
+#define OFFSET_ALARM_HOUR   offsetof(struct SiiRtcInfo, alarmHour)
+#define OFFSET_ALARM_MINUTE offsetof(struct SiiRtcInfo, alarmMinute)
+
 #endif // GUARD_RTC_H

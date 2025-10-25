@@ -52,13 +52,13 @@ void FakeRtc_AdvanceTimeBy(u32 days, u32 hours, u32 minutes, u32 seconds)
 {
     struct DateTime dateTime;
     struct SiiRtcInfo *rtc = FakeRtc_GetCurrentTime();
-
     ConvertRtcToDateTime(&dateTime, rtc);
     DateTime_AddSeconds(&dateTime, seconds);
     DateTime_AddMinutes(&dateTime, minutes);
     DateTime_AddHours(&dateTime, hours);
     DateTime_AddDays(&dateTime, days);
     ConvertDateTimeToRtc(rtc, &dateTime);
+  
 }
 
 void FakeRtc_ForwardTimeTo(u32 hour, u32 minute, u32 second)
