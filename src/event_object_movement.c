@@ -11693,3 +11693,14 @@ bool8 MovementAction_QuarterStep_Step1(struct ObjectEvent *objectEvent, struct S
     }
     return FALSE;
 }
+
+u16 GetObjectEventGraphicsIdByLocalIdAndMap(u8 localId, u8 mapNum, u8 mapGroup)
+{
+    const struct ObjectEventTemplate *obj = GetObjectEventTemplateByLocalIdAndMap(localId, mapNum, mapGroup);
+#ifdef UBFIX
+    // BUG: The function may return NULL, and attempting to read from NULL may freeze the game using modern compilers.
+    if (obj == NULL)
+        return 0;
+#endif // UBFIX
+    return obj->graphicsId;
+}
