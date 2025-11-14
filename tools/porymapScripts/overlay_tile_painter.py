@@ -9,7 +9,7 @@ DEFAULT_TOP_TILE_ID = 575
 MAX_SIZE = 100
 BORDER_W = 7
 BORDER_H = 5
-BG_ALPHA = 0.2
+BG_ALPHA = 0.8
 
 def id_to_color(num):
     return f"#{(num * 123457) & 0xFFFFFF:06x}"
@@ -20,7 +20,6 @@ class TilePainter:
         self.root = root
         self.root.title("Overlay Tile Painter")
 
-        # playable size
         self.play_w = 20
         self.play_h = 20
 
@@ -40,12 +39,21 @@ class TilePainter:
         self.current_tile_id = DEFAULT_TOP_TILE_ID
 
         self.tiles = {}
-
         self.tk_cache = {}
 
-        self.create_controls()
-        self.create_canvas()
+        self.controls_frame = tk.Frame(self.root)
+        self.controls_frame.pack(side=tk.TOP, fill=tk.X)
+        self.create_controls() 
+
+        self.main_area = tk.Frame(self.root)
+        self.main_area.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+        self.create_canvas() 
+        self.create_palette()
+
         self.draw_grid()
+
+
 
     # ------------------------------
     def create_controls(self):
@@ -78,10 +86,27 @@ class TilePainter:
         tk.Button(frame, text="Open map.json", command=self.load_json).pack(side=tk.LEFT)
         tk.Button(frame, text="Copy JSON", command=self.copy_json).pack(side=tk.LEFT)
 
+        # --- Background opacity slider ---
+        tk.Label(frame, text="Alpha").pack(side=tk.LEFT, padx=(10, 2))
+
+        self.bg_opacity = tk.DoubleVar(value=BG_ALPHA)
+        slider = tk.Scale(
+            frame,
+            from_=0.0,
+            to=1.0,
+            resolution=0.01,
+            orient=tk.HORIZONTAL,
+            variable=self.bg_opacity,
+            command=self.on_bg_opacity_change,
+            length=120
+        )
+        slider.pack(side=tk.LEFT)
+
+
     # ------------------------------
     def create_canvas(self):
-        self.canvas = tk.Canvas(self.root, bg="white")
-        self.canvas.pack()
+        self.canvas = tk.Canvas(self.main_area, bg="black")
+        self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.canvas.bind("<Button-1>", self.paint_tile)   # LEFT = paint
         self.canvas.bind("<Button-3>", self.erase_tile)   # RIGHT = erase
 
@@ -237,9 +262,20 @@ class TilePainter:
     #-------------------------------
 
     def load_json(self):
+        # Determine initial directory
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        preferred_dir = os.path.abspath(os.path.join(script_dir, "../../data/maps"))
+    
+        if os.path.exists(preferred_dir):
+            initial_dir = preferred_dir
+        else:
+            initial_dir = script_dir
+    
         path = filedialog.askopenfilename(
+            initialdir=initial_dir,
             filetypes=[("JSON Files", "*.json"), ("All Files", "*.*")]
         )
+    
         if not path:
             return
     
@@ -315,7 +351,7 @@ class TilePainter:
             hpx = self.full_h * self.tile_size
             img = img.resize((wpx, hpx), Image.NEAREST)
     
-            alpha = BG_ALPHA
+            alpha = float(BG_ALPHA) 
             if img.mode != "RGBA":
                 img = img.convert("RGBA")
     
@@ -482,6 +518,8 @@ class TilePainter:
         for row in self.metatile_images.get("secondary", []):
             self.flat_metatiles.extend(row)
 
+        self.rebuild_palette()
+
 
     # ------------------------------
 
@@ -528,6 +566,120 @@ class TilePainter:
             tiles.append(row_tiles)
     
         return tiles
+
+    # ------------------------------
+
+    def on_bg_opacity_change(self, value):
+        global BG_ALPHA
+        try:
+            BG_ALPHA = float(value)
+        except:
+            BG_ALPHA = 0.5
+
+        # Reload the image with new opacity
+        if self.bg_image_path:
+            self.update_bg_image()
+            self.redraw()
+
+    # ------------------------------
+
+    def create_palette(self):
+        # Right-side scrollable palette frame
+        palette_frame = tk.Frame(self.main_area)
+        palette_frame.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # Scrollbar
+        scrollbar = tk.Scrollbar(palette_frame, orient=tk.VERTICAL)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # Canvas that will scroll
+        self.palette_canvas = tk.Canvas(
+            palette_frame,
+            width=200,
+            height=500,
+            yscrollcommand=scrollbar.set
+        )
+        self.palette_canvas.pack(side=tk.LEFT, fill=tk.Y)
+
+        scrollbar.config(command=self.palette_canvas.yview)
+
+        # Inner frame where tile buttons will appear
+        self.palette_inner = tk.Frame(self.palette_canvas)
+        self.palette_window = self.palette_canvas.create_window(
+            (0, 0),
+            window=self.palette_inner,
+            anchor="nw"
+        )
+
+        # When resized, fix scroll area
+        self.palette_inner.bind(
+            "<Configure>",
+            lambda e: self.palette_canvas.configure(
+                scrollregion=self.palette_canvas.bbox("all")
+            )
+        )
+
+        self.palette_tiles = []     # PhotoImages to keep references
+        self.palette_buttons = []   # Buttons / labels representing tiles
+        self.selected_palette_idx = None
+
+    # ------------------------------
+
+    def rebuild_palette(self):
+        # Remove old palette items
+        for widget in self.palette_inner.winfo_children():
+            widget.destroy()
+
+        self.palette_tiles.clear()
+        self.palette_buttons.clear()
+        self.selected_palette_idx = None
+
+        if not self.flat_metatiles:
+            return
+
+        TILE_DISPLAY_SIZE = self.tile_size  # match drawing size
+
+        for i, img in enumerate(self.flat_metatiles):
+            # scale for display
+            thumb = img.resize((TILE_DISPLAY_SIZE, TILE_DISPLAY_SIZE), Image.NEAREST)
+            tkimg = ImageTk.PhotoImage(thumb)
+            self.palette_tiles.append(tkimg)
+
+            lbl = tk.Label(
+                self.palette_inner,
+                image=tkimg,
+                bd=2,
+                relief="flat"
+            )
+
+            lbl.grid(row=i // 8, column=i % 8, padx=2, pady=2)  # 8 columns
+            lbl.bind("<Button-1>", lambda e, idx=i: self.select_palette_tile(idx))
+
+            self.palette_buttons.append(lbl)
+
+    # ------------------------------
+
+    def select_palette_tile(self, idx):
+        # Update selected tile
+        self.current_tile_id = idx
+
+        # Update tile entry field
+        self.tile_entry.delete(0, tk.END)
+        self.tile_entry.insert(0, str(idx))
+
+        # Update border highlighting
+        if self.selected_palette_idx is not None:
+            old = self.palette_buttons[self.selected_palette_idx]
+            old.config(relief="flat", bd=2)
+
+        btn = self.palette_buttons[idx]
+        btn.config(relief="solid", bd=2)
+
+        self.selected_palette_idx = idx
+
+
+
+
 
 
 # ------------------------------
