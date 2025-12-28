@@ -33,7 +33,7 @@ void ApplyMonSpeciesVariantToPaletteBuffer(u32 species, bool8 shiny, u32 PID, u1
 // Species data helpers
 
 #define HUE_INDEX(h) (            \
-    ((h) == 0 ? 0 : (h) <= 10 ? 1 \
+    ((h) == 0 ? 0 : (h) <= 10 ? 0 \
                 : (h) <= 20   ? 2 \
                 : (h) <= 30   ? 3 \
                 : (h) <= 45   ? 4 \
@@ -42,13 +42,13 @@ void ApplyMonSpeciesVariantToPaletteBuffer(u32 species, bool8 shiny, u32 PID, u1
                 : /*(h)==180*/ 7))
 
 #define CHR_INDEX(s) (           \
-    ((s) == 0 ? 0 : (s) <= 5 ? 1 \
+    ((s) == 0 ? 0 : (s) <= 5 ? 0 \
                 : (s) <= 10  ? 2 \
                 : /*(s)==25*/ 3))
 
 #define LUM_INDEX(v) ( \
     ((v) == 0 ? 0      \
-    : (v) <= 5 ? 1     \
+    : (v) <= 5 ? 0     \
     : (v) <= 10  ? 2   \
     : /*(v)==25*/ 3))
 
@@ -74,41 +74,78 @@ void ApplyMonSpeciesVariantToPaletteBuffer(u32 species, bool8 shiny, u32 PID, u1
 
 #define DEFAULT_SPECIES_VARIANT \
   {                             \
-      PAL1(1, 15),              \
+      PAL1(0, 15),              \
       HCL1(10, 0, 0, FALSE),    \
   }
 
 static const struct SpeciesVariant gSpeciesVariants[NUM_SPECIES] = {
     [SPECIES_POOCHYENA] = {
-        PAL1(1, 5),
+        PAL1(0, 5),
         HCL1(0, 25, 5, FALSE),
     },
     [SPECIES_MIGHTYENA] = {
-        PAL1(1, 5),
+        PAL1(0, 5),
         HCL1(0, 25, 5, FALSE),
     },
+    [SPECIES_TREECKO] = {
+        PAL1(0, 5),
+        HCL1(45, 10, 0, FALSE),
+        PAL2(10, 12),
+        HCL2(20, 25, 10, FALSE),
+    },
+    [SPECIES_GROVYLE] = {
+        PAL1(0, 8),
+        HCL1(45, 10, 0, FALSE),
+        PAL2(11, 14),
+        HCL2(20, 25, 10, FALSE),
+    },
+     [SPECIES_SCEPTILE] = {
+        PAL1(0, 5),
+        HCL1(45, 10, 0, FALSE),
+        PAL2(9, 10),
+        HCL2(20, 25, 10, FALSE),
+    },
+        [SPECIES_TORCHIC] = {
+        PAL1(1, 3),
+        HCL1(10, 25, 5, FALSE),
+        PAL2(5, 8),
+        HCL2(45, 10, 0, FALSE),
+    },
+      [SPECIES_COMBUSKEN] = {
+        PAL1(5, 7),
+        HCL1(10, 25, 5, FALSE),
+        PAL2(1, 4),
+        HCL2(45, 10, 0, FALSE),
+    },
+     [SPECIES_BLAZIKEN] = {
+        PAL1(10, 12),
+        HCL1(10, 25, 5, FALSE),
+        PAL2(1, 8),
+        HCL2(45, 10, 0, FALSE),
+    },
+    
     [SPECIES_ZIGZAGOON] = {
         PAL1(5, 8),
         HCL1(10, 25, 5, FALSE),
     },
     [SPECIES_LINOONE] = {
-        PAL1(1, 3),
+        PAL1(0, 3),
         HCL1(10, 25, 5, FALSE),
     },
     [SPECIES_WURMPLE] = {
-        PAL1(1, 4),
+        PAL1(0, 4),
         HCL1(30, 5, 0, TRUE),
     },
     [SPECIES_SMEARGLE] = {
         PAL1(8, 6),
         HCL1(360, 0, 0, FALSE),
-        PAL2(1, 6),
+        PAL2(0, 6),
         HCL2(10, 5, 5, TRUE),
     },
         [SPECIES_TYRANITAR] = {
       PAL1(11, 3),
       HCL1(30, 25, 0, TRUE),
-      PAL2(1, 5),
+      PAL2(0, 5),
       HCL2(0, 0, 10, FALSE),
     },
 };

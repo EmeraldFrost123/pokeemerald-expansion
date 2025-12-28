@@ -6191,11 +6191,6 @@ const u16 *GetMonFrontSpritePal(struct Pokemon *mon)
     return GetMonSpritePalFromSpeciesAndPersonality(species, isShiny, personality);
 }
 
-const u16 *GetMonSpritePalFromSpeciesAndPersonality(u16 species, bool32 isShiny, u32 personality)
-{
-    return GetMonSpritePalFromSpecies(species, isShiny, IsPersonalityFemale(species, personality));
-}
-
 const u16 *GetMonSpritePalFromSpeciesInternal(u16 species, bool32 isShiny, bool32 isFemale)
 {
     species = SanitizeSpeciesId(species);
