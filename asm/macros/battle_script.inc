@@ -2482,7 +2482,7 @@
 	.endm
 
 	.macro pushtraitstack battler:req, ability:req
-	callnative BS_PushTraitStack
+	callnative PushTraitStack
 	.byte \battler
 	.2byte \ability
 	.endm
