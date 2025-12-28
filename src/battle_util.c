@@ -1245,27 +1245,7 @@ bool32 IsLastMonToMove(u32 battler)
     return TRUE;
 }
 
-// Returns TRUE if no other battler after this one in turn order will use a move
-bool32 IsLastMonToMove(u32 battler)
-{
-    u32 i;
-    u32 battlerTurnOrderNum = GetBattlerTurnOrderNum(battler);
-
-    if (battlerTurnOrderNum >= gBattlersCount - 1)
-        return TRUE;
-
-    for (i = battlerTurnOrderNum + 1; i < gBattlersCount; i++)
-    {
-        u32 otherBattler = gBattlerByTurnOrder[i];
-        if (!IsBattlerAlive(otherBattler))
-            continue;
-        if (gActionsByTurnOrder[i] == B_ACTION_USE_MOVE)
-            return FALSE;
-    }
-    return TRUE;
-}
-
-bool32 ShouldDefiantCompetitiveActivate(u32 battler, enum Ability ability)
+bool32 ShouldDefiantCompetitiveActivate(u32 battler)
 {
     u32 side = GetBattlerSide(battler);
     if (!BattlerHasTrait(battler, ABILITY_DEFIANT) && !BattlerHasTrait(battler, ABILITY_COMPETITIVE))
@@ -1440,7 +1420,7 @@ void PrepareStringBattle(enum StringID stringId, u32 battler)
         PushTraitStack(gBattlerTarget, ABILITY_CONTRARY);
         BattleScriptCall(BattleScript_GenerateAbilityPopUp);
     }
-    else if (GetGenConfig(GEN_CONFIG_UPDATED_INTIMIDATE) >= GEN_8 && stringId == STRINGID_PKMNCUTSATTACKWITH && SearchTraits(battlerTraits, ABILITY_RATTLED)
+    else if (GetConfig(CONFIG_UPDATED_INTIMIDATE) >= GEN_8 && stringId == STRINGID_PKMNCUTSATTACKWITH && SearchTraits(battlerTraits, ABILITY_RATTLED)
             && CompareStat(gBattlerTarget, STAT_SPEED, MAX_STAT_STAGE, CMP_LESS_THAN))
     {
         gBattlerAbility = gBattlerTarget;
@@ -4545,7 +4525,7 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, u32 battler, enum Ability ab
         {
             gBattleScripting.savedBattler = gBattlerAttacker;
             gBattlerAttacker = battler;
-            if (GetGenConfig(GEN_INTREPID_SWORD) == GEN_9)
+            if (GetConfig(CONFIG_INTREPID_SWORD) == GEN_9)
                     gBattleStruct->partyState[GetBattlerSide(battler)][gBattlerPartyIndexes[battler]].intrepidSwordBoost = TRUE;
             effect += CommonSwitchInAbilities(battler, ABILITY_INTREPID_SWORD, traitCheck, BattleScript_BattlerAbilityStatRaiseOnSwitchInIntrepid);
         }
@@ -4554,7 +4534,7 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, u32 battler, enum Ability ab
         {
             gBattleScripting.savedBattler = gBattlerAttacker;
             gBattlerAttacker = battler;
-            if (GetGenConfig(GEN_DAUNTLESS_SHIELD) == GEN_9)
+            if (GetConfig(CONFIG_DAUNTLESS_SHIELD) == GEN_9)
                     gBattleStruct->partyState[GetBattlerSide(battler)][gBattlerPartyIndexes[battler]].dauntlessShieldBoost = TRUE;
             effect += CommonSwitchInAbilities(battler, ABILITY_DAUNTLESS_SHIELD, traitCheck, BattleScript_BattlerAbilityStatRaiseOnSwitchInDauntless);
         }
@@ -10125,7 +10105,7 @@ bool32 IsBattlerAffectedByHazards(u32 battler, bool32 toxicSpikes)
 
 bool32 IsSheerForceAffected(u16 move, enum Ability ability)
 {
-    return BattlerHasTrait(battler, ABILITY_SHEER_FORCE) && MoveIsAffectedBySheerForce(move);
+    return ability == ABILITY_SHEER_FORCE && MoveIsAffectedBySheerForce(move);
 }
 
 // This function is the body of "jumpifstat", but can be used dynamically in a function

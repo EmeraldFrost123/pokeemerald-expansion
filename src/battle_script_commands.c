@@ -18267,7 +18267,7 @@ void BS_TryAbsorbToxicSpikesOnFaint(void)
         return;
     }
 
-    if (IsBattlerGrounded(battler, GetBattlerAbility(battler), GetBattlerHoldEffect(battler))
+    if (IsBattlerGrounded(battler, GetBattlerHoldEffect(battler))
      && IS_BATTLER_OF_TYPE(battler, TYPE_POISON))
     {
         gSideTimers[side].toxicSpikesAmount = 0;
