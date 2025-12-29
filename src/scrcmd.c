@@ -171,7 +171,7 @@ bool8 ScrCmd_callnative(struct ScriptContext *ctx)
     Script_RequestEffects(SCREFF_V1);
     Script_CheckEffectInstrumentedCallNative(func);
 
-    func(ctx);
+    func(ctxctx);
     return FALSE;
 }
 
