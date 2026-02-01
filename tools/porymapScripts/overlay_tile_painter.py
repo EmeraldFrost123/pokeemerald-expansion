@@ -595,7 +595,7 @@ class TilePainter:
         # Canvas that will scroll
         self.palette_canvas = tk.Canvas(
             palette_frame,
-            width=200,
+            width=218,
             height=500,
             yscrollcommand=scrollbar.set
         )
