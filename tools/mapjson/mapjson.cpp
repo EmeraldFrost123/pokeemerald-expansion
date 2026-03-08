@@ -615,6 +615,22 @@ string generate_overlays_text(Json groups_data, string include_path) {
     return text.str();
 }
 
+string generate_overlays_text(Json groups_data, string include_path) {
+    vector<string> map_names;
+
+    for (auto &group : groups_data["group_order"].array_items())
+    for (auto map_name : groups_data[json_to_string(group)].array_items())
+            map_names.push_back(json_to_string(map_name));
+
+    ostringstream text;
+    text << get_generated_warning(include_path + "/map_groups.json", true);
+
+    for (string map_name : map_names)
+        text << "\t.include \"" << include_path << "/" << map_name << "/overlays.inc\"\n";
+
+    return text.str();
+}
+
 string generate_headers_text(Json groups_data, vector<string> &invalid_maps, string include_path) {
     vector<string> map_names;
 
