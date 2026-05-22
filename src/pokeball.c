@@ -1405,7 +1405,7 @@ void LoadBallGfx(u8 ballId, bool8 inBattle)
         LoadCompressedSpriteSheetUsingHeap(&gPokeBalls[ballId].pic);
         LoadSpritePalette(&gPokeBalls[ballId].palette);
         if (inBattle)
-            TimeMixBattleSpritePalette(OBJ_PLTT_ID(LoadSpritePalette(&gBallSpritePalettes[ballId])));
+            TimeMixBattleSpritePalette(OBJ_PLTT_ID(LoadSpritePalette(&gPokeBalls[ballId].palette)));
     }
 
     switch (ballId)

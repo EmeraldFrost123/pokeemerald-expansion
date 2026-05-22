@@ -53,6 +53,7 @@
 #include "text.h"
 #include "trainer_hill.h"
 #include "util.h"
+#include "variant_colours.h"
 #include "constants/abilities.h"
 #include "constants/battle_frontier.h"
 #include "constants/battle_move_effects.h"
@@ -5941,18 +5942,18 @@ const u16 *GetMonSpritePalFromSpeciesIsEggInternal(u16 species, bool32 isShiny, 
     }
 }
 
-const u16 *GetMonSpritePalFromSpeciesAndPersonalityIsEgg(u16 species, bool32 isShiny, u32 personality)
+const u16 *GetMonSpritePalFromSpeciesAndPersonalityIsEgg(u16 species, bool32 isShiny, u32 personality, bool32 isEgg)
 {
-    const u16 *base = GetMonSpritePalFromSpeciesIsEggInternal(species, isShiny, IsPersonalityFemale(species, personality));
+    const u16 *base = GetMonSpritePalFromSpeciesIsEggInternal(species, isShiny, IsPersonalityFemale(species, personality), isEgg);
     static u16 sVariantPal[16];
     CpuCopy16(base, sVariantPal, sizeof(sVariantPal));
     ApplyMonSpeciesVariantToPaletteBuffer(species, isShiny, personality, sVariantPal);
     return sVariantPal;
 }
 
-const u16 *GetMonSpritePalFromSpeciesIsEgg(u16 species, bool32 isShiny, bool32 isFemale)
+const u16 *GetMonSpritePalFromSpeciesIsEgg(u16 species, bool32 isShiny, bool32 isFemale, bool32 isEgg)
 {
-    const u16 *base = GetMonSpritePalFromSpeciesIsEggInternal(species, isShiny, isFemale);
+    const u16 *base = GetMonSpritePalFromSpeciesIsEggInternal(species, isShiny, isFemale, isEgg);
     static u16 sVariantPal[16];
     CpuCopy16(base, sVariantPal, sizeof(sVariantPal));
     ApplyMonSpeciesVariantToPaletteBuffer(species, isShiny, 0x00000000, sVariantPal);

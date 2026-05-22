@@ -824,6 +824,10 @@ static const u8 sPartyMenuActionCounts[] =
     [ACTIONS_TAKEITEM_TOSS] = ARRAY_COUNT(sPartyMenuAction_TakeItemTossCancel),
     [ACTIONS_ROTOM_CATALOG] = ARRAY_COUNT(sPartyMenuAction_RotomCatalog),
     [ACTIONS_ZYGARDE_CUBE]  = ARRAY_COUNT(sPartyMenuAction_ZygardeCube),
+    [ACTIONS_FOLLOWER_SET]          = ARRAY_COUNT(sPartyMenuAction_SetCancel),
+    [ACTIONS_FOLLOWER_SET_RETURN]   = ARRAY_COUNT(sPartyMenuAction_SetReturnCancel),
+    [ACTIONS_FOLLOWER_UNSET]        = ARRAY_COUNT(sPartyMenuAction_UnsetCancel),
+    [ACTIONS_FOLLOWER_UNSET_RETURN] = ARRAY_COUNT(sPartyMenuAction_UnsetReturnCancel),
 };
 
 static const u8 *const sUnionRoomTradeMessages[] =
