@@ -1801,7 +1801,7 @@ static void MoveSelectionDisplayMoveDescription(enum BattlerId battler)
         && moveEffect != EFFECT_BRINE
         && moveEffect != EFFECT_LOW_KICK)
     {
-        struct DamageContext ctx = {0};
+        struct BattleContext ctx = {0};
 
         ctx.battlerAtk = battler;
         ctx.battlerDef = BATTLE_OPPOSITE(battler);
