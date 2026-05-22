@@ -62,7 +62,7 @@ static enum Ability GetPartyMonAbilityForSwitchCalc(enum BattlerId battler, u32 
 static void InitializeSwitchinCandidate(enum BattlerId switchinBattler, u32 monIndex, struct Pokemon *mon)
 {
     u32 storeCurrBattlerPartyIndex = gBattlerPartyIndexes[switchinBattler]; // Rage Fist fix
-    PokemonToBattleMon(mon, &gBattleMons[switchinBattler], FALSE);
+    PokemonToBattleMon(mon, &gBattleMons[switchinBattler]);
     gBattlerPartyIndexes[switchinBattler] = monIndex;
     CopyMonAbilityAndTypesToBattleMon(switchinBattler, mon);
     // Setup switchin battler data
