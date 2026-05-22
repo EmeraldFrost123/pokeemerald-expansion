@@ -6499,7 +6499,7 @@ static bool8 ObjectEventOnRightSideStair(struct ObjectEvent *objectEvent, s16 x,
     }
 }
 
-__attribute__((flatten)) enum Collision GetCollisionWithBehaviorsAtCoords(struct ObjectEvent *objectEvent, s16 x, s16 y, u8 elevation, enum Direction dir, u8 currentBehavior, u8 nextBehavior)
+ u8 GetCollisionWithBehaviorsAtCoords(struct ObjectEvent *objectEvent, s16 x, s16 y, u8 elevation, u32 dir, u8 currentBehavior, u8 nextBehavior)
 {
     enum Collision collision;
 
@@ -6552,7 +6552,7 @@ __attribute__((flatten)) enum Collision GetCollisionWithBehaviorsAtCoords(struct
 }
 
 
-u8 GetCollisionAtCoords(struct ObjectEvent *objectEvent, s16 x, s16 y, u32 dir)
+enum Collision GetCollisionAtCoords(struct ObjectEvent *objectEvent, s16 x, s16 y, enum Direction dir)
 {
     u8 nextBehavior = MapGridGetMetatileBehaviorAt(x, y);
     return GetCollisionWithBehaviorsAtCoords(objectEvent, x, y, objectEvent->currentElevation, dir, objectEvent->currentMetatileBehavior, nextBehavior);
